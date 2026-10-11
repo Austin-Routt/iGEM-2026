@@ -1,0 +1,42 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "AKGut: Flux-Balance Analysis of alpha-Ketoglutarate Overproduction in Escherichia coli Nissle 1917"
+abstract: >-
+  Genome-scale metabolic modelling (flux balance analysis on iHM1533) used to
+  design and evaluate Escherichia coli Nissle 1917 strains that secrete
+  alpha-ketoglutarate, for the UH iGEM 2026 AKGut project.
+authors:
+  - family-names: Routt
+    given-names: Austin
+    affiliation: "University of Houston iGEM 2026"
+version: "2026.1"
+date-released: "2026-10-11"
+license: MIT
+repository-code: "https://gitlab.igem.org/2026/software/houston-tx/flux-balance-analysis"
+url: "https://2026.igem.wiki/houston-tx/model"
+keywords:
+  - flux balance analysis
+  - genome-scale metabolic model
+  - alpha-ketoglutarate
+  - Escherichia coli Nissle 1917
+  - iGEM
+references:
+  - type: article
+    title: "High-quality genome-scale metabolic network reconstruction of probiotic bacterium Escherichia coli Nissle 1917"
+    authors:
+      - family-names: "van 't Hof"
+        given-names: M.
+      - family-names: Mohite
+        given-names: O. S.
+      - family-names: Monk
+        given-names: J. M.
+      - family-names: Weber
+        given-names: T.
+      - family-names: Palsson
+        given-names: B. O.
+      - family-names: Sommer
+        given-names: M. O. A.
+    journal: "BMC Bioinformatics"
+    volume: 23
+    year: 2022
+    doi: "10.1186/s12859-022-05108-9"
