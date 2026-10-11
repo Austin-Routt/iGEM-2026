@@ -500,6 +500,123 @@ def fig5_dfba_plate(model, base):
 
 
 # =====================================================================
+#  FIGURE 6 — WHERE THE LitOpt / WET-LAB DIFFERENCE COMES FROM
+# =====================================================================
+#  This figure exists to answer a specific question raised in team review:
+#  an earlier in-team analysis found NO difference between the two designs,
+#  while these figures show one. Both are correct -- they ask different
+#  questions (see panel B). Panel A localises the entire difference to a
+#  single edit, Delta-pta.
+#
+#  The wet-lab build ("Proposed Strategy") as actually specified is:
+#  gltA(R163L) overexpression, ppc overexpression, ~80% sucA CRISPRi,
+#  DeltagdhA, and optional DeltaarcA. Of these, only the sucA knockdown and
+#  DeltagdhA are stoichiometrically representable in FBA. It does NOT include
+#  DeltaldhA, Deltapta, DeltasdhCDAB, DeltapoxB, or a dedicated exporter.
+# =====================================================================
+LADDER = [
+    ("wet-lab\n(as written)", ("AKGDH", "AKGDH2", "GLUDy"), False),
+    ("+ ΔldhA",          ("AKGDH", "AKGDH2", "GLUDy", "LDH_D"), False),
+    ("+ Δpta",           ("AKGDH", "AKGDH2", "GLUDy", "LDH_D", "PTAr"), False),
+    ("+ ΔsdhCDAB",       ("AKGDH", "AKGDH2", "GLUDy", "LDH_D", "PTAr", "SUCDi"), False),
+    ("+ ΔpoxB",          ("AKGDH", "AKGDH2", "GLUDy", "LDH_D", "PTAr", "SUCDi", "POX"), False),
+    ("+ transport\n= LitOpt", ("AKGDH", "AKGDH2", "GLUDy", "LDH_D", "PTAr", "SUCDi", "POX"), True),
+]
+
+
+def _ladder_value(model, carbon, kos, transport, o2_lb):
+    """a-KG at the operating point for an arbitrary knockout set."""
+    with model:
+        set_medium(model, carbon, o2_lb)
+        for r in kos:
+            model.reactions.get_by_id(r).bounds = (0.0, 0.0)
+        if transport:
+            model.reactions.get_by_id("ICL").bounds = (0.0, 0.0)
+            model.reactions.get_by_id("MALS").bounds = (0.0, 0.0)
+            model.reactions.get_by_id(KGTP).lower_bound = 0.0
+            exp = Reaction("AKG_free_exporter"); exp.bounds = (0.0, 1000.0)
+            exp.add_metabolites({model.metabolites.akg_c: -1, model.metabolites.akg_p: 1})
+            model.add_reactions([exp])
+        model.objective = BIO
+        mu = model.optimize().objective_value
+        if mu is None or mu < 1e-3:
+            return None
+        model.reactions.get_by_id(BIO).lower_bound = GROWTH_FRACTION * mu
+        model.objective = EX_AKG
+        return model.optimize().objective_value
+
+
+def fig6_strain_gap(model, base):
+    fig, (axA, axB) = plt.subplots(1, 2, figsize=(15.0, 6.4),
+                                   gridspec_kw={"width_ratios": [1.55, 1.0]})
+
+    # ---- Panel A: edit-by-edit ladder, both carbons -------------------
+    labels = [s[0] for s in LADDER]
+    x = np.arange(len(LADDER)); w = 0.38
+    for off, carbon, col in [(-w/2, "glucose", "#2CA02C"), (w/2, "glycerol", "#7FB3D5")]:
+        vals = [_ladder_value(model, carbon, kos, tr, -0.5 * base[carbon]) for _, kos, tr in LADDER]
+        bars = axA.bar(x + off, vals, width=w, color=col, edgecolor="white",
+                       label=carbon.capitalize(), zorder=3)
+        for b, v in zip(bars, vals):
+            axA.text(b.get_x() + b.get_width()/2, v + 0.07, f"{v:.2f}", ha="center",
+                     va="bottom", fontsize=8.6, fontweight="bold", color="#333")
+        if carbon == "glucose":                       # annotate the decisive step
+            axA.annotate(f"Δpta alone:\n{vals[2]-vals[1]:+.2f}", xy=(x[2]-w/2, vals[2]),
+                         xytext=(x[2]-w/2-0.55, vals[2] + 1.5), fontsize=10, fontweight="bold",
+                         color="#b03030",
+                         arrowprops=dict(arrowstyle="->", color="#b03030", lw=1.8))
+    axA.axvspan(1.5, 2.5, color="#fdecec", zorder=0)
+    axA.set_xticks(x); axA.set_xticklabels(labels, fontsize=9.2)
+    axA.set_ylabel("Max α-KG at 50% O₂, ≥80% growth\n(mmol·gDW⁻¹·h⁻¹)", fontsize=11.5)
+    axA.set_title("A. The difference is one edit: Δpta", fontsize=13, fontweight="bold")
+    axA.legend(fontsize=10.5, loc="upper left")
+    axA.set_ylim(0, 8.4)
+    for s in ("top", "right"): axA.spines[s].set_visible(False)
+
+    # ---- Panel B: why two analyses disagreed --------------------------
+    t25 = ("AKGDH", "AKGDH2", "LDH_D", "PTAr", "GLUDy", "SUCDi")
+    same_ppc = max_akg_at_growth(model, "LitOpt", "glucose", -0.5 * base["glucose"], use_pyc=False)
+    same_pyc = max_akg_at_growth(model, "LitOpt", "glucose", -0.5 * base["glucose"], use_pyc=True)
+    geno_lit = same_ppc
+    geno_wet = _ladder_value(model, "glucose", ("AKGDH", "AKGDH2", "GLUDy"), False, -0.5 * base["glucose"])
+    groups = [("Same background,\nswap enzyme only\n(PPC vs PYC)", [same_ppc, same_pyc],
+               ["PPC", "PYC"], ["#9ecae1", "#2CA02C"]),
+              ("Full genotypes\nas specified\n(LitOpt vs wet-lab)", [geno_lit, geno_wet],
+               ["LitOpt", "wet-lab"], [C_LITOPT, C_WETLAB])]
+    xb = 0
+    for title, vals, names, cols in groups:
+        for v, n, c in zip(vals, names, cols):
+            axB.bar(xb, v, width=0.62, color=c, edgecolor="white", zorder=3)
+            axB.text(xb, v + 0.08, f"{v:.2f}", ha="center", va="bottom",
+                     fontsize=10, fontweight="bold", color="#333")
+            axB.text(xb, -0.42, n, ha="center", va="top", fontsize=9.5)
+            xb += 1
+        xb += 0.75
+    axB.text(0.5, 7.25, "no difference\n(correct)", ha="center", fontsize=9.5,
+             fontweight="bold", color="#1a7a1a")
+    axB.text(3.75, 7.25, f"difference: {geno_lit-geno_wet:+.2f}", ha="center", fontsize=9.5,
+             fontweight="bold", color="#b03030")
+    axB.set_xticks([0.5, 3.75])
+    axB.set_xticklabels([g[0] for g in groups], fontsize=9.6)
+    axB.tick_params(axis="x", pad=22)
+    axB.set_ylabel("Max α-KG (glucose)  (mmol·gDW⁻¹·h⁻¹)", fontsize=11.5)
+    axB.set_title("B. Two analyses, two questions", fontsize=13, fontweight="bold")
+    axB.set_ylim(0, 8.4)
+    for s in ("top", "right"): axB.spines[s].set_visible(False)
+
+    fig.suptitle("Where the LitOpt / wet-lab difference comes from",
+                 fontsize=15, fontweight="bold", y=1.02)
+    fig.text(0.5, -0.06,
+             "Holding the knockout background fixed and swapping only the anaplerotic enzyme gives no difference — PPC and PYC are "
+             "stoichiometrically equivalent. Comparing the genotypes as specified does give a difference, and Δpta accounts for "
+             "essentially all of it: the wet-lab build does not delete pta, so acetate overflow still drains carbon. Adding Δpta "
+             "would capture most of LitOpt's advantage.",
+             ha="center", fontsize=9.0, style="italic", color="#555555", wrap=True)
+    fig.tight_layout()
+    _save(fig, "fig6_strain_gap_decomposition")
+
+
+# =====================================================================
 #  MAIN
 # =====================================================================
 def main():
@@ -527,7 +644,8 @@ def main():
     fig3_akg_operating_point(model, base)
     fig4_cs_feedback()
     fig5_dfba_plate(model, base)
-    print("\nDone. 5 figures written (PNG + SVG).")
+    fig6_strain_gap(model, base)
+    print("\nDone. 6 figures written (PNG + SVG).")
 
 
 if __name__ == "__main__":

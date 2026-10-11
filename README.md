@@ -31,7 +31,8 @@ Plus four findings the figures make explicit:
 1. **Oxygen optimum is non-monotonic.** α-KG peaks near 50 % O₂ (microaerobic), not at full aeration — O₂ baselines 21.97 (glucose) / 13.53 (glycerol).
 2. **PPC and PYC are stoichiometrically equivalent** at the operating point (6.10 either way). Pyruvate carboxylase is preferred for a *kinetic* reason FBA cannot represent: glucose import via the PTS spends PEP, so overexpressing PEP carboxylase competes with sugar uptake. This independently matches the notebook's Stage 13 conclusion.
 3. **No design is growth-coupled.** At maximum growth every strain can secrete zero α-KG — which is why the project proposes an addiction system.
-4. **The plate endpoint is carbon-budget-limited.** In the 48-hour dFBA, wild-type (following true growth-optimal metabolism) secretes ~0, while both engineered strains clear the 8 mM target and converge near 22–23 mM. Carbon source sets the *timing* (glucose ~9 h, glycerol ~18 h), because glycerol supplies half the carbon per molecule.
+4. **One deletion explains the design gap.** LitOpt out-produces the wet-lab build by +1.22 on glucose, and Δ*pta* (acetate overflow) accounts for +1.79 of it; Δ*ldhA* and Δ*poxB* contribute nothing in FBA. An earlier in-team analysis found *no* difference because it held the knockout background fixed and swapped only PPC/PYC — both results are correct and are reconciled in Figure 6.
+5. **The plate endpoint is carbon-budget-limited.** In the 48-hour dFBA, wild-type (following true growth-optimal metabolism) secretes ~0, while both engineered strains clear the 8 mM target and converge near 22–23 mM. Carbon source sets the *timing* (glucose ~9 h, glycerol ~18 h), because glycerol supplies half the carbon per molecule.
 
 ## Install
 
@@ -46,7 +47,7 @@ pip install -r requirements.txt
 
 ## Run / reproduce the figures
 
-One command regenerates all five wiki figures (PNG + SVG) into `figures/`:
+One command regenerates all six wiki figures (PNG + SVG) into `figures/`:
 
 ```bash
 python regenerate_model_figures.py
@@ -74,9 +75,10 @@ The script is self-contained and reads `iHM1533.xml` from the repository root. T
 
 | Path | What it is |
 |---|---|
-| `regenerate_model_figures.py` | **Canonical figure generator.** Self-contained; produces all five wiki figures. |
-| `figures/` | The five figures as published (PNG + SVG). |
+| `regenerate_model_figures.py` | **Canonical figure generator.** Self-contained; produces all six wiki figures. |
+| `figures/` | The six figures as published (PNG + SVG). |
 | `iHM1533.xml`, `iHM1533.json` | The EcN genome-scale model (van 't Hof et al., 2022), SBML and JSON. |
+| `docs/02_Model_wiki_page.md` | The Model wiki page text, with captions naming the files in `figures/`. |
 | `docs/ANALYSIS.md` | The full 17-stage analysis narrative with embedded code and reasoning — the provenance for every design decision. |
 | `UH iGEM 2026 Tutorial.ipynb` | Exploratory notebook walking through the same 17 stages interactively. |
 | `scripts/verify_iHM1533_numbers.py` | Standalone check that the model loads and the headline fluxes reproduce. |

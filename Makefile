@@ -3,7 +3,7 @@
 
 help:
 	@echo "make install   - install pinned dependencies into the active environment"
-	@echo "make figures   - regenerate all five wiki figures into figures/"
+	@echo "make figures   - regenerate all six wiki figures into figures/"
 	@echo "make verify    - check the model loads and headline fluxes reproduce"
 	@echo "make clean     - remove generated figures"
 
