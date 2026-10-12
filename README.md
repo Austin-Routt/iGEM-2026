@@ -117,4 +117,4 @@ MIT — see [LICENSE](LICENSE). The model `iHM1533` is redistributed under the t
 
 ## Contact
 
-Austin Routt — UH iGEM 2026 Dry Lab lead.
+Austin Routt — UH iGEM 2026 Student Leader.
